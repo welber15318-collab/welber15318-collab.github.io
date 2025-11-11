@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>My First Website</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: linear-gradient(135deg, #89f7fe, #66a6ff);
+      color: #333;
+      text-align: center;
+      margin: 0;
+      padding: 0;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+    }
+
+    h1 { font-size: 3rem; margin-bottom: 10px; }
+    p { font-size: 1.2rem; margin-bottom: 20px; }
+
+    #stats { font-size: 0.95rem; margin-top: 8px; }
+
+    button {
+      background-color: #0078ff;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      font-size: 1rem;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+    button:hover { background-color: #005fcc; }
+    button:focus-visible { outline: 3px solid #005fcc; outline-offset: 3px; }
+  </style>
+</head>
+<body>
+
+  <h1>Hello, World! 👋</h1>
+  <p aria-live="polite">Welcome to my first HTML website.</p>
+  <button onclick="changeMessage()">Click Me!</button>
+  <p id="stats" aria-live="polite">Total: 0 • You: 0</p>
+
+  <!-- Supabase client -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
+    // ===== Supabase configuration (replace with your real values) =====
+    const SUPABASE_URL = "https://yfjfiedoxmyrlckyqzso.supabase.co"; // Settings → API → Project URL
+    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlmamZpZWRveG15cmxja3lxenNvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI3OTQzNjMsImV4cCI6MjA3ODM3MDM2M30.31MQm5y7XEnnM1uKoezUkNj3mxlAuIXbOsW9aLPTCfM";            // Settings → API → anon public key
+    const SITE_ID = "b7e7c5c1-6b2a-4b8f-9a0d-3e2f6a1d4c90"; // must match the site_id used in your SQL RLS policies
+
+    const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    // Stable anonymous user id per browser (for "You" count)
+    const LS_UID_KEY = "clickUserId";
+    function getUserId(){
+      let id = localStorage.getItem(LS_UID_KEY);
+      if(!id){
+        id = (crypto && crypto.randomUUID) ? crypto.randomUUID() : String(Date.now()) + Math.random();
+        localStorage.setItem(LS_UID_KEY, id);
+      }
+      return id;
+    }
+
+    async function recordClick(){
+      const { error } = await sb
+        .from("clicks")
+        .insert([{ user_id: getUserId(), site_id: SITE_ID }]);
+      if (error) console.error("Insert error:", error);
+    }
+
+    async function fetchStats(){
+      // total count for this site
+      const totalQ = sb.from("clicks")
+        .select("id", { count: "exact", head: true })
+        .eq("site_id", SITE_ID);
+
+      // this user's count
+      const mineQ = sb.from("clicks")
+        .select("id", { count: "exact", head: true })
+        .eq("site_id", SITE_ID)
+        .eq("user_id", getUserId());
+
+      const [totalRes, mineRes] = await Promise.all([totalQ, mineQ]);
+      return { total: totalRes.count ?? 0, mine: mineRes.count ?? 0 };
+    }
+
+    async function updateStatsUI(){
+      const statsEl = document.querySelector("#stats");
+      try {
+        const { total, mine } = await fetchStats();
+        statsEl.textContent = `Total: ${total} • You: ${mine}`;
+      } catch (e) {
+        console.error(e);
+        statsEl.textContent = "Stats unavailable";
+      }
+    }
+
+    // Your existing behavior + Supabase writes/reads
+    async function changeMessage() {
+      const p = document.querySelector('p');
+      p.textContent = "My first website! 🎉";
+      await recordClick();
+      await updateStatsUI();
+    }
+
+    // Initial stats on load
+    updateStatsUI();
+  </script>
+
+</body>
+</html>
