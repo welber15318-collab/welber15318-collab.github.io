@@ -59,8 +59,8 @@
 <body>
 
   <header>
-    <h1>Data. Code. Insight. 🚀</h1>
-    <p aria-live="polite">Welcome to my first HTML website.</p>
+    <h1>Data. Code. Insight. 🚀 </h1>
+    <p aria-live="polite">One click closer to smarter insights.</p>
     <button onclick="changeMessage()">Click Me!</button>
     <p id="stats" aria-live="polite">Total: 0 • You: 0</p>
   </header>
@@ -181,7 +181,7 @@
 
     async function changeMessage() {
       const p = document.querySelector('header p');
-      p.textContent = "Ralph is going to New York! 🎉";
+      p.textContent = "Click for science! 🧪";
       await recordClick();
       await updateStatsUI();
       await refreshDashboard(); // live update
