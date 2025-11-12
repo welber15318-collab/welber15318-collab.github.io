@@ -9,7 +9,7 @@
     integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
     crossorigin=""
   />
-  <title>My First Website + Dashboard</title>
+  <title>Find Where You Are</title>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -60,6 +60,26 @@
     tr:last-child td { border-bottom: none; }
 
     footer { padding: 24px; color: #1f2d3d; opacity: .8; }
+    /* --- Landscapes tab styles --- */
+    .tabs {
+      display: flex; gap: 8px; flex-wrap: wrap; margin: 8px 0 12px;
+    }
+    .tabbtn {
+      background: #0078ff; color: #fff; border: 0; padding: 8px 14px;
+      border-radius: 999px; cursor: pointer; transition: background .2s;
+    }
+    .tabbtn:hover { background: #005fcc; }
+    .tabbtn[aria-selected="true"] { box-shadow: 0 0 0 3px rgba(0,120,255,.25); }
+
+    .gallery {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(180px,1fr));
+      gap: 10px;
+    }
+    .gallery img {
+      width: 100%; height: 140px; object-fit: cover; border-radius: 10px;
+      box-shadow: 0 6px 18px rgba(0,0,0,.08);
+    }
+
   </style>
 </head>
 <body>
@@ -74,6 +94,29 @@
   </header>
 
   <main>
+    <section class="card" id="landscapes">
+      <div class="row">
+        <h3 style="margin:0;">Landscapes 🏔️ </h3>
+        <!-- optional: a small note -->
+        <span class="muted">Switch countries to explore photos</span>
+      </div>
+
+      <!-- country tabs -->
+      <div class="tabs" role="tablist" aria-label="Countries">
+        <button class="tabbtn" role="tab" id="tab-jp" aria-controls="panel-jp"
+                aria-selected="true" onclick="selectCountry('japan', this)">Japan</button>
+        <button class="tabbtn" role="tab" id="tab-us" aria-controls="panel-us"
+                aria-selected="false" onclick="selectCountry('usa', this)">USA</button>
+        <button class="tabbtn" role="tab" id="tab-ph" aria-controls="panel-ph"
+                aria-selected="false" onclick="selectCountry('philippines', this)">Philippines</button>
+        <button class="tabbtn" role="tab" id="tab-fr" aria-controls="panel-fr"
+                aria-selected="false" onclick="selectCountry('france', this)">France</button>
+      </div>
+
+      <!-- gallery panel -->
+      <div id="landscapePanel" class="gallery" role="region" aria-live="polite" aria-label="Landscape gallery"></div>
+    </section>
+
     <section class="card">
       <h3 style="margin-top:0;">🌍 Map of recent clicks</h3>
       <div id="map" role="img" aria-label="World map with click locations" style="width:100%;height:360px;border-radius:12px;"></div>
@@ -452,8 +495,54 @@
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
     }
+    // --- Landscape data: map country -> image URLs (use your own images/paths) ---
+    const LANDSCAPE_DATA = {
+      japan: [
+        "images/japan-mount-fuji.jpg",
+        "images/japan-kyoto.jpg",
+        "images/japan-hokkaido.jpg",
+      ],
+      usa: [
+        "images/usa-grand-canyon.jpg",
+        "images/usa-yosemite.jpg",
+        "images/usa-ny-adirondacks.jpg",
+      ],
+      philippines: [
+        "images/ph-batanes.jpg",
+        "images/ph-palawan.jpg",
+        "images/ph-banaue.jpg",
+      ],
+      france: [
+        "images/france-alps.jpg",
+        "images/france-provence.jpg",
+        "images/france-normandy.jpg",
+      ],
+    };
 
+    // Render gallery for a country
+    function renderGallery(countryKey){
+      const panel = document.querySelector("#landscapePanel");
+      const list = LANDSCAPE_DATA[countryKey] || [];
+      if(!panel) return;
+      if(list.length === 0){
+        panel.innerHTML = `<p class="muted">No images available.</p>`;
+        return;
+      }
+      panel.innerHTML = list.map(src =>
+        `<img src="${src}" alt="${countryKey} landscape" loading="lazy">`
+      ).join("");
+    }
+
+    // Handle tab selection (called by button onclick)
+    function selectCountry(countryKey, btn){
+      // update aria-selected on all tab buttons
+      document.querySelectorAll(".tabs .tabbtn").forEach(b => b.setAttribute("aria-selected","false"));
+      if(btn) btn.setAttribute("aria-selected","true");
+      renderGallery(countryKey);
+    }
     // ===== Initialize =====
+    // initialize Landscapes tab (default: Japan)
+    selectCountry('japan', document.getElementById('tab-jp'));
     updateStatsUI();
     refreshDashboard();
     getIPLocationCached().then(l => {
