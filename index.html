@@ -258,7 +258,7 @@
 
     async function changeMessage() {
       const p = document.querySelector('header p');
-      p.textContent = "Click for science! 🧪";
+      p.textContent = "Button clicked! Recording your click...";
       await recordClick();
       await updateStatsUI();
       await refreshDashboard(); // live update
