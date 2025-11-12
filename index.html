@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>My First Website</title>
+  <title>My First Website + Dashboard</title>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -12,60 +12,143 @@
       text-align: center;
       margin: 0;
       padding: 0;
-      height: 100vh;
+      min-height: 100vh;
       display: flex;
       flex-direction: column;
-      justify-content: center;
       align-items: center;
     }
 
-    h1 { font-size: 3rem; margin-bottom: 10px; }
-    p { font-size: 1.2rem; margin-bottom: 20px; }
-
+    header, main, section { width: 100%; max-width: 980px; padding: 16px; }
+    h1 { font-size: 3rem; margin: 24px 0 8px; }
+    p  { font-size: 1.1rem; margin: 8px 0 16px; }
     #stats { font-size: 0.95rem; margin-top: 8px; }
 
     button {
-      background-color: #0078ff;
-      color: white;
-      border: none;
-      padding: 10px 20px;
-      font-size: 1rem;
-      border-radius: 5px;
-      cursor: pointer;
-      transition: background 0.3s;
+      background-color: #0078ff; color: #fff; border: none;
+      padding: 10px 20px; font-size: 1rem; border-radius: 6px;
+      cursor: pointer; transition: background 0.3s;
     }
     button:hover { background-color: #005fcc; }
     button:focus-visible { outline: 3px solid #005fcc; outline-offset: 3px; }
+
+    .card {
+      background: rgba(255,255,255,0.85);
+      border-radius: 12px; padding: 16px; margin: 12px 0;
+      box-shadow: 0 6px 18px rgba(0,0,0,0.08); text-align: left;
+    }
+    .grid { display: grid; grid-template-columns: 1fr; gap: 12px; }
+    @media(min-width: 900px){ .grid { grid-template-columns: 1fr 1fr; } }
+    .row { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+    .muted { color: #1f2d3d; opacity: .8; font-size: .95rem; }
+    .toolbar { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+    select {
+      padding: 8px 10px; border-radius: 6px; border: 1px solid #cbd5e1; background: white; font-size: 0.95rem;
+    }
+
+    table {
+      width: 100%; border-collapse: collapse; font-size: 0.95rem; background: white;
+      border-radius: 10px; overflow: hidden;
+    }
+    th, td { padding: 10px 12px; border-bottom: 1px solid #eee; text-align: left; }
+    th { background: #f6f9ff; font-weight: 700; }
+    tr:last-child td { border-bottom: none; }
+
+    footer { padding: 24px; color: #1f2d3d; opacity: .8; }
   </style>
 </head>
 <body>
 
-  <h1>Hello, World! 👋</h1>
-  <p aria-live="polite">Welcome to my first HTML website.</p>
-  <button onclick="changeMessage()">Click Me!</button>
-  <p id="stats" aria-live="polite">Total: 0 • You: 0</p>
+  <header>
+    <h1>Hello, World! 👋</h1>
+    <p aria-live="polite">Welcome to my first HTML website.</p>
+    <button onclick="changeMessage()">Click Me!</button>
+    <p id="stats" aria-live="polite">Total: 0 • You: 0</p>
+  </header>
 
-  <!-- Supabase client -->
+  <main>
+    <section class="card">
+      <div class="row">
+        <h2 style="margin:8px 0;">📊 Dashboard</h2>
+        <div class="toolbar">
+          <label for="range" class="muted">Range:</label>
+          <select id="range" onchange="refreshDashboard()">
+            <option value="7">Last 7 days</option>
+            <option value="14">Last 14 days</option>
+            <option value="30" selected>Last 30 days</option>
+            <option value="90">Last 90 days</option>
+          </select>
+
+          <label for="userFilter" class="muted">User:</label>
+          <select id="userFilter" onchange="refreshDashboard()">
+            <option value="all" selected>All users</option>
+          </select>
+
+          <button onclick="refreshDashboard()">Refresh</button>
+          <button onclick="exportCSV()">Export CSV</button>
+        </div>
+      </div>
+      <p class="muted">Aggregates update live from Supabase (cloud Postgres). Filters apply to charts + table + export.</p>
+    </section>
+
+    <section class="grid">
+      <div class="card">
+        <h3 style="margin-top:0;">Clicks per day</h3>
+        <canvas id="chartDaily" height="220" aria-label="Clicks per day chart"></canvas>
+      </div>
+      <div class="card">
+        <h3 style="margin-top:0;">Top users</h3>
+        <canvas id="chartUsers" height="220" aria-label="Top users by clicks chart"></canvas>
+      </div>
+    </section>
+
+    <section class="card">
+      <h3 style="margin-top:0;">Recent clicks</h3>
+      <table aria-label="Recent clicks">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Time</th>
+            <th>User</th>
+          </tr>
+        </thead>
+        <tbody id="recentBody">
+          <tr><td colspan="3" class="muted">Loading…</td></tr>
+        </tbody>
+      </table>
+    </section>
+  </main>
+
+  <footer>Built with Supabase + Chart.js</footer>
+
+  <!-- Supabase + Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
   <script>
     // ===== Supabase configuration (replace with your real values) =====
-    const SUPABASE_URL = "https://yfjfiedoxmyrlckyqzso.supabase.co"; // Settings → API → Project URL
-    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlmamZpZWRveG15cmxja3lxenNvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI3OTQzNjMsImV4cCI6MjA3ODM3MDM2M30.31MQm5y7XEnnM1uKoezUkNj3mxlAuIXbOsW9aLPTCfM";            // Settings → API → anon public key
-    const SITE_ID = "b7e7c5c1-6b2a-4b8f-9a0d-3e2f6a1d4c90"; // must match the site_id used in your SQL RLS policies
+    const SUPABASE_URL = "https://YOUR_PROJECT_ID.supabase.co";
+    const SUPABASE_ANON_KEY = "YOUR_PUBLIC_ANON_KEY";
+    const SITE_ID = "b7e7c5c1-6b2a-4b8f-9a0d-3e2f6a1d4c90";
 
     const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-    // Stable anonymous user id per browser (for "You" count)
+    // Stable anonymous user id per browser
+    function uuidv4(){
+      return ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g, c =>
+        (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c/4).toString(16)
+      );
+    }
     const LS_UID_KEY = "clickUserId";
     function getUserId(){
       let id = localStorage.getItem(LS_UID_KEY);
       if(!id){
-        id = (crypto && crypto.randomUUID) ? crypto.randomUUID() : String(Date.now()) + Math.random();
+        id = crypto?.randomUUID ? crypto.randomUUID() : uuidv4();
         localStorage.setItem(LS_UID_KEY, id);
       }
       return id;
     }
 
+    // ===== Header stats =====
     async function recordClick(){
       const { error } = await sb
         .from("clicks")
@@ -73,18 +156,14 @@
       if (error) console.error("Insert error:", error);
     }
 
-    async function fetchStats(){
-      // total count for this site
+    async function fetchHeaderStats(){
       const totalQ = sb.from("clicks")
         .select("id", { count: "exact", head: true })
         .eq("site_id", SITE_ID);
-
-      // this user's count
       const mineQ = sb.from("clicks")
         .select("id", { count: "exact", head: true })
         .eq("site_id", SITE_ID)
         .eq("user_id", getUserId());
-
       const [totalRes, mineRes] = await Promise.all([totalQ, mineQ]);
       return { total: totalRes.count ?? 0, mine: mineRes.count ?? 0 };
     }
@@ -92,7 +171,7 @@
     async function updateStatsUI(){
       const statsEl = document.querySelector("#stats");
       try {
-        const { total, mine } = await fetchStats();
+        const { total, mine } = await fetchHeaderStats();
         statsEl.textContent = `Total: ${total} • You: ${mine}`;
       } catch (e) {
         console.error(e);
@@ -100,17 +179,166 @@
       }
     }
 
-    // Your existing behavior + Supabase writes/reads
     async function changeMessage() {
-      const p = document.querySelector('p');
-      p.textContent = "My first website! 🎉";
+      const p = document.querySelector('header p');
+      p.textContent = "Ralph is going to New York! 🎉";
       await recordClick();
       await updateStatsUI();
+      await refreshDashboard(); // live update
     }
 
-    // Initial stats on load
-    updateStatsUI();
-  </script>
+    // ===== Dashboard state =====
+    let dailyChart, usersChart;
+    let currentRows = []; // rows after range + user filter (used for CSV)
 
+    function startISO(days){
+      const d = new Date();
+      d.setUTCHours(0,0,0,0);
+      d.setUTCDate(d.getUTCDate() - (days-1));
+      return d.toISOString();
+    }
+    function niceTime(ts){ return new Date(ts).toLocaleString(); }
+    function shortUser(id){ return id ? id.slice(0,8) : "unknown"; }
+
+    async function fetchClicksWindow(days){
+      const since = startISO(days);
+      const { data, error } = await sb.from("clicks")
+        .select("clicked_at,user_id")
+        .eq("site_id", SITE_ID)
+        .gte("clicked_at", since)
+        .order("clicked_at", { ascending: true })
+        .limit(10000); // generous cap
+      if(error){ console.error(error); return []; }
+      return data || [];
+    }
+
+    function aggregateDaily(rows, days){
+      const map = new Map();
+      const today = new Date(); today.setHours(0,0,0,0);
+      for(let i=days-1;i>=0;i--){
+        const d = new Date(today); d.setDate(today.getDate()-i);
+        const key = d.toISOString().slice(0,10);
+        map.set(key, 0);
+      }
+      for(const r of rows){
+        const key = new Date(r.clicked_at).toISOString().slice(0,10);
+        if(map.has(key)) map.set(key, map.get(key)+1);
+      }
+      return { labels: Array.from(map.keys()), values: Array.from(map.values()) };
+    }
+
+    function aggregateUsers(rows, topN=10){
+      const counts = {};
+      for(const r of rows){ counts[r.user_id] = (counts[r.user_id]||0) + 1; }
+      const arr = Object.entries(counts)
+        .map(([user, c]) => ({ user, c }))
+        .sort((a,b)=>b.c-a.c)
+        .slice(0, topN);
+      return { labels: arr.map(x => shortUser(x.user)), values: arr.map(x => x.c) };
+    }
+
+    function renderRecent(rows, limit=12){
+      const body = document.querySelector("#recentBody");
+      body.innerHTML = "";
+      const latest = rows.slice(-limit).reverse();
+      if(latest.length === 0){
+        body.innerHTML = `<tr><td colspan="3" class="muted">No data yet.</td></tr>`;
+        return;
+      }
+      latest.forEach((r, idx) => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `<td>${idx+1}</td><td>${niceTime(r.clicked_at)}</td><td>${shortUser(r.user_id)}</td>`;
+        body.appendChild(tr);
+      });
+    }
+
+    function ensureChart(ctx, type, label, labels, data){
+      const cfg = {
+        type,
+        data: { labels, datasets: [{ label, data, tension: 0.25 }] },
+        options: {
+          responsive: true, animation: false,
+          plugins: { legend: { display: true } },
+          scales: { x: { grid: { display:false } }, y: { beginAtZero: true } }
+        }
+      };
+      if(type === "bar"){ cfg.data.datasets[0].borderWidth = 1; }
+      return new Chart(ctx, cfg);
+    }
+
+    function populateUserFilter(allRows){
+      const sel = document.querySelector("#userFilter");
+      const prev = sel.value || "all";
+      const users = Array.from(new Set(allRows.map(r => r.user_id)));
+      sel.innerHTML = `<option value="all">All users</option>` +
+        users.map(u => `<option value="${u}">${shortUser(u)} (${u})</option>`).join("");
+      // try to keep previous selection if it still exists
+      const exists = users.includes(prev);
+      sel.value = exists ? prev : "all";
+    }
+
+    function applyUserFilter(rows){
+      const selVal = document.querySelector("#userFilter").value;
+      if(selVal === "all") return rows;
+      return rows.filter(r => r.user_id === selVal);
+    }
+
+    async function refreshDashboard(){
+      const days = parseInt(document.querySelector("#range").value, 10);
+      // fetch full window then populate user dropdown
+      const windowRows = await fetchClicksWindow(days);
+      populateUserFilter(windowRows);
+
+      // apply user filter
+      const filtered = applyUserFilter(windowRows);
+      currentRows = filtered; // keep for CSV export
+
+      // charts
+      const daily = aggregateDaily(filtered, days);
+      const ctxDaily = document.getElementById("chartDaily").getContext("2d");
+      if(dailyChart){ dailyChart.destroy(); }
+      dailyChart = ensureChart(ctxDaily, "line", "Clicks", daily.labels, daily.values);
+
+      const users = aggregateUsers(filtered, 10);
+      const ctxUsers = document.getElementById("chartUsers").getContext("2d");
+      if(usersChart){ usersChart.destroy(); }
+      usersChart = ensureChart(ctxUsers, "bar", "Clicks", users.labels, users.values);
+
+      // table
+      renderRecent(filtered, 12);
+    }
+
+    function exportCSV(){
+      // Build CSV from currentRows (already filtered by range + user)
+      if(!currentRows || currentRows.length === 0){
+        alert("No data to export for current filters.");
+        return;
+      }
+      const header = ["clicked_at","user_id"];
+      const lines = [header.join(",")];
+      currentRows.forEach(r => {
+        // ensure ISO + raw id
+        lines.push([new Date(r.clicked_at).toISOString(), r.user_id].join(","));
+      });
+      const csv = lines.join("\n");
+      const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      const days = document.querySelector("#range").value;
+      const user = document.querySelector("#userFilter").value;
+      a.href = url;
+      a.download = `clicks_${days}d_${user === "all" ? "all" : shortUser(user)}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+
+    // ===== Initialize =====
+    updateStatsUI();
+    refreshDashboard();
+    // setInterval(refreshDashboard, 15000); // optional auto-refresh
+  </script>
 </body>
 </html>
+
