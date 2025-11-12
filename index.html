@@ -3,6 +3,12 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+    crossorigin=""
+  />
   <title>My First Website + Dashboard</title>
   <style>
     body {
@@ -62,10 +68,19 @@
     <h1>Data. Code. Insight. 🚀 </h1>
     <p aria-live="polite">One click closer to smarter insights.</p>
     <button onclick="changeMessage()">Click Me!</button>
+    
     <p id="stats" aria-live="polite">Total: 0 • You: 0</p>
+    <p id="locLine" class="muted"></p>
   </header>
 
   <main>
+    <section class="card">
+      <h3 style="margin-top:0;">🌍 Map of recent clicks</h3>
+      <div id="map" role="img" aria-label="World map with click locations" style="width:100%;height:360px;border-radius:12px;"></div>
+      <p class="muted" style="margin-top:8px;">
+        Map data © <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a> contributors.
+      </p>
+    </section>
     <section class="card">
       <div class="row">
         <h2 style="margin:8px 0;">📊 Dashboard</h2>
@@ -117,13 +132,16 @@
       </table>
     </section>
   </main>
-
   <footer>Built with Supabase + Chart.js</footer>
 
   <!-- Supabase + Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-
+  <script
+    src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+    integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+    crossorigin=""
+  ></script>
   <script>
     // ===== Supabase configuration (replace with your real values) =====
     const SUPABASE_URL = "https://yfjfiedoxmyrlckyqzso.supabase.co";
@@ -148,48 +166,72 @@
       return id;
     }
 
+      // ----- IP location (no prompt) -----
+    const LS_IPLOC_KEY = "cachedIPLocation";
+    const IPLOC_TTL_HOURS = 24;
+
+    function cacheIPLoc(obj){
+      localStorage.setItem(LS_IPLOC_KEY, JSON.stringify({ ...obj, ts: Date.now() }));
+    }
+    function readCachedIPLoc(){
+      try{
+        const raw = localStorage.getItem(LS_IPLOC_KEY);
+        if(!raw) return null;
+        const o = JSON.parse(raw);
+        const ageH = (Date.now() - o.ts) / 3_600_000;
+        if(ageH > IPLOC_TTL_HOURS) return null;
+        return o; // { ip, city, region, country, country_code, timezone, ts }
+      }catch{ return null; }
+    }
+
+    async function fetchIPLocation(){
+      const res = await fetch("https://ipapi.co/json/");
+      if(!res.ok) throw new Error("ipapi.co error");
+      const d = await res.json();
+      return {
+        ip: d.ip ?? null,
+        city: d.city ?? null,
+        region: d.region ?? null,
+        country: d.country_name ?? null,
+        country_code: d.country ?? null,
+        timezone: d.timezone ?? null,
+        lat: (typeof d.latitude === "number") ? d.latitude : (d.latitude ? parseFloat(d.latitude) : null),
+        lon: (typeof d.longitude === "number") ? d.longitude : (d.longitude ? parseFloat(d.longitude) : null),
+      };
+    }
+
+    async function getIPLocationCached(){
+      const cached = readCachedIPLoc();
+      if (cached) return cached;
+      try{
+        const fresh = await fetchIPLocation();
+        cacheIPLoc(fresh);
+        return fresh;
+      }catch(e){
+        console.warn("IP location fetch failed:", e);
+        return null; // continue without location
+      }
+    }
     // ===== Header stats =====
-    async function recordClick() {
-        let lat = null, lon = null;
-        try {
-            const pos = await new Promise((resolve, reject) =>
-            navigator.geolocation.getCurrentPosition(resolve, reject)
-            );
-            lat = pos.coords.latitude;
-            lon = pos.coords.longitude;
-        } catch(e) {
-            console.log("Location denied or not available");
-        }
-
-        const { error } = await sb.from("clicks").insert([
-            {
-            user_id: getUserId(),
-            site_id: SITE_ID,
-            lat,
-            lon
-            }
-        ]);
-    if (error) console.error(error);
+    async function recordClick(){
+      const ipLoc = await getIPLocationCached(); // no prompt
+      const payload = {
+        user_id: getUserId(),
+        site_id: SITE_ID,
+        ip:           ipLoc?.ip ?? null,
+        city:         ipLoc?.city ?? null,
+        region:       ipLoc?.region ?? null,
+        country:      ipLoc?.country ?? null,
+        country_code: ipLoc?.country_code ?? null,
+        timezone:     ipLoc?.timezone ?? null,
+        lat:          ipLoc?.lat ?? null,
+        lon:          ipLoc?.lon ?? null,
+      };
+      const { error } = await sb.from("clicks").insert([payload]);
+      if (error) console.error("Insert error:", error);
     }
 
-    async function getLocation() {
-        if (!navigator.geolocation) {
-            alert("Geolocation not supported by your browser.");
-            return;
-        }
-        navigator.geolocation.getCurrentPosition(
-            (pos) => {
-            const lat = pos.coords.latitude;
-            const lon = pos.coords.longitude;
-            console.log("Latitude:", lat, "Longitude:", lon);
-            alert(`Your location:\nLat: ${lat}\nLon: ${lon}`);
-            },
-            (err) => {
-            console.warn("Location error:", err);
-            alert("Could not get location (permission denied or blocked).");
-            }
-        );
-    }
+    
 
     async function fetchHeaderStats(){
       const totalQ = sb.from("clicks")
@@ -217,7 +259,6 @@
     async function changeMessage() {
       const p = document.querySelector('header p');
       p.textContent = "Click for science! 🧪";
-      await getLocation();
       await recordClick();
       await updateStatsUI();
       await refreshDashboard(); // live update
@@ -239,11 +280,11 @@
     async function fetchClicksWindow(days){
       const since = startISO(days);
       const { data, error } = await sb.from("clicks")
-        .select("clicked_at,user_id")
+        .select("clicked_at,user_id,city,country,country_code,lat,lon")
         .eq("site_id", SITE_ID)
         .gte("clicked_at", since)
         .order("clicked_at", { ascending: true })
-        .limit(10000); // generous cap
+        .limit(10000);
       if(error){ console.error(error); return []; }
       return data || [];
     }
@@ -342,8 +383,50 @@
 
       // table
       renderRecent(filtered, 12);
+      renderMapMarkers(filtered);
+    }
+    let map, mapLayerGroup;
+
+    function initMap(){
+      if (map) return;
+      map = L.map("map", { zoomControl: true, worldCopyJump: true });
+      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        maxZoom: 18,
+        attribution: '&copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a> contributors'
+      }).addTo(map);
+      mapLayerGroup = L.layerGroup().addTo(map);
+      map.setView([20, 0], 2); // default world view
     }
 
+    function renderMapMarkers(rows){
+        initMap();
+        mapLayerGroup.clearLayers();
+
+        const points = rows
+          .filter(r => typeof r.lat === "number" && typeof r.lon === "number" && !Number.isNaN(r.lat) && !Number.isNaN(r.lon))
+          .slice(-500); // cap for performance
+
+        if(points.length === 0){
+          map.setView([20, 0], 2);
+          return;
+        }
+
+        const bounds = [];
+        points.forEach(r => {
+          const marker = L.marker([r.lat, r.lon]).bindPopup(`
+            <div style="min-width:180px">
+              <div><strong>${[r.city, r.country].filter(Boolean).join(", ") || "Unknown"}</strong></div>
+              <div>User: ${shortUser(r.user_id)}</div>
+              <div>${niceTime(r.clicked_at)}</div>
+            </div>
+          `);
+          marker.addTo(mapLayerGroup);
+          bounds.push([r.lat, r.lon]);
+        });
+
+        const latlngBounds = L.latLngBounds(bounds);
+        map.fitBounds(latlngBounds.pad(0.2));
+      }
     function exportCSV(){
       // Build CSV from currentRows (already filtered by range + user)
       if(!currentRows || currentRows.length === 0){
@@ -373,7 +456,19 @@
     // ===== Initialize =====
     updateStatsUI();
     refreshDashboard();
+    getIPLocationCached().then(l => {
+      const el = document.querySelector("#locLine");
+      if(l && el) {
+        el.textContent = `You appear to be in ${l.city ?? "?"}, ${l.country ?? "?"} (${l.country_code ?? "?"})`;
+      }
+    });
     // setInterval(refreshDashboard, 15000); // optional auto-refresh
+    // --- Tiny UI touch: Show detected IP location in footer/header ---
+    (async function showLoc(){
+      const l = await getIPLocationCached();
+      const el = document.querySelector("#locLine");
+      if(l) el.textContent = `You appear to be in ${l.city ?? "?"}, ${l.country ?? "?"} (${l.country_code ?? "?"})`;
+    })();
   </script>
 </body>
 </html>
