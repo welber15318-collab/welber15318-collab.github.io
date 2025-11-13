@@ -80,11 +80,27 @@
       box-shadow: 0 6px 18px rgba(0,0,0,.08);
     }
 
+    .stats-table th:nth-child(2),
+    .stats-table td:nth-child(2),
+    .stats-table th:nth-child(3),
+    .stats-table td:nth-child(3) {
+      text-align: right;
+    }
+
   </style>
 </head>
 <body>
 
   <header>
+    <div class="toolbar" style="justify-content:center; margin-top:8px;">
+      <button class="tabbtn mainTabBtn" aria-pressed="true" onclick="switchPageTab('main', this)">
+        Dashboard
+      </button>
+      <button class="tabbtn mainTabBtn" aria-pressed="false" onclick="switchPageTab('countryStats', this)">
+        Country stats
+      </button>
+    </div>
+
     <h1>Find Where You Are 🚀 </h1>
     <p aria-live="polite">One click closer to smarter insights.</p>
     <button onclick="changeMessage()">Click Me!</button>
@@ -94,88 +110,115 @@
   </header>
 
   <main>
-    <section class="card" id="landscapes">
-      <div class="row">
-        <h3 style="margin:0;">Landscapes 🏔️ </h3>
-        <!-- optional: a small note -->
-        <span class="muted">Switch countries to explore photos</span>
-      </div>
-
-      <!-- country tabs -->
-      <div class="tabs" role="tablist" aria-label="Countries">
-        <button class="tabbtn" role="tab" id="tab-jp" aria-controls="panel-jp"
-                aria-selected="true" onclick="selectCountry('japan', this)">Japan</button>
-        <button class="tabbtn" role="tab" id="tab-us" aria-controls="panel-us"
-                aria-selected="false" onclick="selectCountry('usa', this)">USA</button>
-        <button class="tabbtn" role="tab" id="tab-ph" aria-controls="panel-ph"
-                aria-selected="false" onclick="selectCountry('philippines', this)">Philippines</button>
-        <button class="tabbtn" role="tab" id="tab-fr" aria-controls="panel-fr"
-                aria-selected="false" onclick="selectCountry('france', this)">France</button>
-        <button class="tabbtn" role="tab" id="tab-tw" aria-controls="panel-tw"
-              aria-selected="false" onclick="selectCountry('taiwan', this)">Taiwan</button>
-      </div>
-
-      <!-- gallery panel -->
-      <div id="landscapePanel" class="gallery" role="region" aria-live="polite" aria-label="Landscape gallery"></div>
-    </section>
-
-    <section class="card">
-      <h3 style="margin-top:0;">🌍 Map of recent clicks</h3>
-      <div id="map" role="img" aria-label="World map with click locations" style="width:100%;height:360px;border-radius:12px;"></div>
-      <p class="muted" style="margin-top:8px;">
-        Map data © <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a> contributors.
-      </p>
-    </section>
-    <section class="card">
-      <div class="row">
-        <h2 style="margin:8px 0;">📊 Dashboard</h2>
-        <div class="toolbar">
-          <label for="range" class="muted">Range:</label>
-          <select id="range" onchange="refreshDashboard()">
-            <option value="7">Last 7 days</option>
-            <option value="14">Last 14 days</option>
-            <option value="30" selected>Last 30 days</option>
-            <option value="90">Last 90 days</option>
-          </select>
-
-          <label for="userFilter" class="muted">User:</label>
-          <select id="userFilter" onchange="refreshDashboard()">
-            <option value="all" selected>All users</option>
-          </select>
-
-          <button onclick="refreshDashboard()">Refresh</button>
-          <button onclick="exportCSV()">Export CSV</button>
+    <div id="page-main">
+      <section class="card" id="landscapes">
+        <div class="row">
+          <h3 style="margin:0;">Landscapes 🏔️ </h3>
+          <!-- optional: a small note -->
+          <span class="muted">Switch countries to explore photos</span>
         </div>
-      </div>
-      <p class="muted">Aggregates update live from Supabase (cloud Postgres). Filters apply to charts + table + export.</p>
-    </section>
 
-    <section class="grid">
-      <div class="card">
-        <h3 style="margin-top:0;">Clicks per day</h3>
-        <canvas id="chartDaily" height="220" aria-label="Clicks per day chart"></canvas>
-      </div>
-      <div class="card">
-        <h3 style="margin-top:0;">Top users</h3>
-        <canvas id="chartUsers" height="220" aria-label="Top users by clicks chart"></canvas>
-      </div>
-    </section>
+        <!-- country tabs -->
+        <div class="tabs" role="tablist" aria-label="Countries">
+          <button class="tabbtn" role="tab" id="tab-jp" aria-controls="panel-jp"
+                  aria-selected="true" onclick="selectCountry('japan', this)">Japan</button>
+          <button class="tabbtn" role="tab" id="tab-us" aria-controls="panel-us"
+                  aria-selected="false" onclick="selectCountry('usa', this)">USA</button>
+          <button class="tabbtn" role="tab" id="tab-ph" aria-controls="panel-ph"
+                  aria-selected="false" onclick="selectCountry('philippines', this)">Philippines</button>
+          <button class="tabbtn" role="tab" id="tab-fr" aria-controls="panel-fr"
+                  aria-selected="false" onclick="selectCountry('france', this)">France</button>
+          <button class="tabbtn" role="tab" id="tab-tw" aria-controls="panel-tw"
+                aria-selected="false" onclick="selectCountry('taiwan', this)">Taiwan</button>
+        </div>
 
-    <section class="card">
-      <h3 style="margin-top:0;">Recent clicks</h3>
-      <table aria-label="Recent clicks">
-        <thead>
-          <tr>
-            <th>#</th>
-            <th>Time</th>
-            <th>User</th>
-          </tr>
-        </thead>
-        <tbody id="recentBody">
-          <tr><td colspan="3" class="muted">Loading…</td></tr>
-        </tbody>
-      </table>
-    </section>
+        <!-- gallery panel -->
+        <div id="landscapePanel" class="gallery" role="region" aria-live="polite" aria-label="Landscape gallery"></div>
+      </section>
+
+      <section class="card">
+        <h3 style="margin-top:0;">🌍 Map of recent clicks</h3>
+        <div id="map" role="img" aria-label="World map with click locations" style="width:100%;height:360px;border-radius:12px;"></div>
+        <p class="muted" style="margin-top:8px;">
+          Map data © <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a> contributors.
+        </p>
+      </section>
+      <section class="card">
+        <div class="row">
+          <h2 style="margin:8px 0;">📊 Dashboard</h2>
+          <div class="toolbar">
+            <label for="range" class="muted">Range:</label>
+            <select id="range" onchange="refreshDashboard()">
+              <option value="7">Last 7 days</option>
+              <option value="14">Last 14 days</option>
+              <option value="30" selected>Last 30 days</option>
+              <option value="90">Last 90 days</option>
+            </select>
+
+            <label for="userFilter" class="muted">User:</label>
+            <select id="userFilter" onchange="refreshDashboard()">
+              <option value="all" selected>All users</option>
+            </select>
+
+            <button onclick="refreshDashboard()">Refresh</button>
+            <button onclick="exportCSV()">Export CSV</button>
+          </div>
+        </div>
+        <p class="muted">Aggregates update live from Supabase (cloud Postgres). Filters apply to charts + table + export.</p>
+      </section>
+
+      <section class="grid">
+        <div class="card">
+          <h3 style="margin-top:0;">Clicks per day</h3>
+          <canvas id="chartDaily" height="220" aria-label="Clicks per day chart"></canvas>
+        </div>
+        <div class="card">
+          <h3 style="margin-top:0;">Top users</h3>
+          <canvas id="chartUsers" height="220" aria-label="Top users by clicks chart"></canvas>
+        </div>
+      </section>
+
+      <section class="card">
+        <h3 style="margin-top:0;">Recent clicks</h3>
+        <table aria-label="Recent clicks">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Time</th>
+              <th>User</th>
+            </tr>
+          </thead>
+          <tbody id="recentBody">
+            <tr><td colspan="3" class="muted">Loading…</td></tr>
+          </tbody>
+        </table>
+      </section>
+     </div>
+     <div id="page-countryStats" style="display:none;">
+        <section class="card">
+          <h2 style="margin-top:0;">Country tab stats</h2>
+          <p class="muted">
+            How many users clicked each country button (unique users and total clicks).
+          </p>
+          <table aria-label="Country stats" class="stats-table">
+            <thead>
+              <tr>
+                <th>Country</th>
+                <th>Unique users</th>
+                <th>Total clicks</th>
+              </tr>
+            </thead>
+            <tbody id="countryStatsBody">
+              <tr><td colspan="3" class="muted">Loading…</td></tr>
+            </tbody>
+          </table>
+        </section>
+        <section class="card">
+          <h3 style="margin-top:0;">Country tab clicks per day</h3>
+          <canvas id="chartCountryLines" height="220"
+                  aria-label="Country tabs clicks per day"></canvas>
+        </section>
+      </div>
   </main>
   <footer>Built with Supabase + Chart.js</footer>
 
@@ -188,6 +231,24 @@
     crossorigin=""
   ></script>
   <script>
+    function switchPageTab(which, btn){
+      // header buttons styling
+      document.querySelectorAll(".mainTabBtn").forEach(b => b.setAttribute("aria-pressed","false"));
+      if (btn) btn.setAttribute("aria-pressed","true");
+
+      // show/hide page containers
+      const mainPage = document.getElementById("page-main");
+      const statsPage = document.getElementById("page-countryStats");
+
+      if (which === "main") {
+        mainPage.style.display = "block";
+        statsPage.style.display = "none";
+      } else if (which === "countryStats") {
+        mainPage.style.display = "none";
+        statsPage.style.display = "block";
+        refreshCountryStats(); // load data when switching to stats page
+      }
+    }
     // ===== Supabase configuration (replace with your real values) =====
     const SUPABASE_URL = "https://yfjfiedoxmyrlckyqzso.supabase.co";
     const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlmamZpZWRveG15cmxja3lxenNvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI3OTQzNjMsImV4cCI6MjA3ODM3MDM2M30.31MQm5y7XEnnM1uKoezUkNj3mxlAuIXbOsW9aLPTCfM";
@@ -276,7 +337,29 @@
       if (error) console.error("Insert error:", error);
     }
 
-    
+    async function recordCountrySelect(countryKey){
+      // reuse your cached IP location if available
+      const ipLoc = await getIPLocationCached().catch(() => null);
+
+      const payload = {
+        user_id: getUserId(),
+        site_id: SITE_ID,
+        action: 'landscape_select',
+        country_ui: countryKey,
+        // optional context (keeps your schema consistent)
+        ip:           ipLoc?.ip ?? null,
+        city:         ipLoc?.city ?? null,
+        region:       ipLoc?.region ?? null,
+        country:      ipLoc?.country ?? null,
+        country_code: ipLoc?.country_code ?? null,
+        timezone:     ipLoc?.timezone ?? null,
+        lat:          ipLoc?.lat ?? null,
+        lon:          ipLoc?.lon ?? null,
+      };
+
+      const { error } = await sb.from("clicks").insert([payload]);
+      if (error) console.error("Insert error (country select):", error);
+    }
 
     async function fetchHeaderStats(){
       const totalQ = sb.from("clicks")
@@ -325,7 +408,7 @@
     async function fetchClicksWindow(days){
       const since = startISO(days);
       const { data, error } = await sb.from("clicks")
-        .select("clicked_at,user_id,city,country,country_code,lat,lon")
+        .select("clicked_at,user_id,action,country_ui,city,country,country_code,lat,lon")
         .eq("site_id", SITE_ID)
         .gte("clicked_at", since)
         .order("clicked_at", { ascending: true })
@@ -388,6 +471,96 @@
       return new Chart(ctx, cfg);
     }
 
+    // --- Country lines chart (country tab clicks per day) ---
+    let countryLinesChart;
+
+    // optional: nice names for country_ui keys
+    const COUNTRY_LABELS = {
+      japan: "Japan",
+      usa: "USA",
+      philippines: "Philippines",
+      france: "France",
+      taiwan: "Taiwan",
+    };
+
+    function buildCountryLineData(rows, days){
+      // only country tab events
+      const countryRows = rows.filter(r => r.action === "landscape_select" && r.country_ui);
+
+      // build date buckets (keys = 'YYYY-MM-DD') for range
+      const dateKeys = [];
+      const today = new Date();
+      today.setHours(0,0,0,0);
+      for(let i = days-1; i >= 0; i--){
+        const d = new Date(today);
+        d.setDate(today.getDate() - i);
+        const key = d.toISOString().slice(0,10);
+        dateKeys.push(key);
+      }
+
+      // map: country -> { dateKey -> count }
+      const perCountry = {}; // { countryKey: { dateKey: count } }
+      for(const r of countryRows){
+        const cKey = r.country_ui;
+        const dayKey = new Date(r.clicked_at).toISOString().slice(0,10);
+        if (!perCountry[cKey]) perCountry[cKey] = {};
+        perCountry[cKey][dayKey] = (perCountry[cKey][dayKey] || 0) + 1;
+      }
+
+      // construct datasets for each country found
+      const datasets = Object.entries(perCountry).map(([cKey, counts]) => {
+        const label = COUNTRY_LABELS[cKey] || cKey;
+        const data = dateKeys.map(k => counts[k] || 0);
+        return {
+          label,
+          data,
+          tension: 0.25,
+          fill: false,
+        };
+      });
+
+      return { labels: dateKeys, datasets };
+    }
+
+    function renderCountryLinesChart(rows, days){
+      const ctx = document.getElementById("chartCountryLines");
+      if (!ctx) return;
+
+      const { labels, datasets } = buildCountryLineData(rows, days);
+
+      if (countryLinesChart) countryLinesChart.destroy();
+
+      if (datasets.length === 0){
+        // If no data, make an empty chart with labels only
+        countryLinesChart = new Chart(ctx.getContext("2d"), {
+          type: "line",
+          data: { labels, datasets: [] },
+          options: {
+            responsive: true,
+            plugins: { legend: { display: false } },
+            scales: { x: { grid: { display:false } }, y: { beginAtZero: true } }
+          }
+        });
+        return;
+      }
+
+      countryLinesChart = new Chart(ctx.getContext("2d"), {
+        type: "line",
+        data: { labels, datasets },
+        options: {
+          responsive: true,
+          animation: false,
+          plugins: {
+            legend: { display: true }
+          },
+          scales: {
+            x: { grid: { display:false } },
+            y: { beginAtZero: true }
+          }
+        }
+      });
+    }
+
     function populateUserFilter(allRows){
       const sel = document.querySelector("#userFilter");
       const prev = sel.value || "all";
@@ -429,6 +602,7 @@
       // table
       renderRecent(filtered, 12);
       renderMapMarkers(filtered);
+      renderCountryLinesChart(filtered, days);
     }
     let map, mapLayerGroup;
 
@@ -441,6 +615,61 @@
       }).addTo(map);
       mapLayerGroup = L.layerGroup().addTo(map);
       map.setView([20, 0], 2); // default world view
+    }
+    
+    async function fetchCountryClickRows(){
+      const { data, error } = await sb.from("clicks")
+        .select("user_id,country_ui")
+        .eq("site_id", SITE_ID)
+        .eq("action", "landscape_select")
+        .limit(10000);
+      if (error) {
+        console.error("Country stats fetch error:", error);
+        return [];
+      }
+      return data || [];
+    }
+
+    function computeCountryStats(rows){
+      const map = {};
+      for (const row of rows){
+        const key = row.country_ui || "unknown";
+        if (!map[key]) {
+          map[key] = { country: key, clicks: 0, users: new Set() };
+        }
+        map[key].clicks += 1;
+        if (row.user_id) map[key].users.add(row.user_id);
+      }
+      return Object.values(map)
+        .map(s => ({
+          country: s.country,
+          clicks: s.clicks,
+          uniqueUsers: s.users.size
+        }))
+        .sort((a, b) => b.clicks - a.clicks); // most clicked first
+    }
+
+    async function refreshCountryStats(){
+      const tbody = document.getElementById("countryStatsBody");
+      if (!tbody) return;
+
+      tbody.innerHTML = `<tr><td colspan="3" class="muted">Loading…</td></tr>`;
+
+      const rows = await fetchCountryClickRows();
+      const stats = computeCountryStats(rows);
+
+      if (!stats.length){
+        tbody.innerHTML = `<tr><td colspan="3" class="muted">No data yet.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = stats.map(s => `
+        <tr>
+          <td>${s.country}</td>
+          <td>${s.uniqueUsers}</td>
+          <td>${s.clicks}</td>
+        </tr>
+      `).join("");
     }
 
     function renderMapMarkers(rows){
@@ -546,7 +775,10 @@
       document.querySelectorAll(".tabs .tabbtn").forEach(b => b.setAttribute("aria-selected","false"));
       if(btn) btn.setAttribute("aria-selected","true");
       renderGallery(countryKey);
+      // record UX event
+      recordCountrySelect(countryKey);
     }
+  
     // ===== Initialize =====
     // initialize Landscapes tab (default: Japan)
     selectCountry('japan', document.getElementById('tab-jp'));
@@ -558,13 +790,7 @@
         el.textContent = `You appear to be in ${l.city ?? "?"}, ${l.country ?? "?"} (${l.country_code ?? "?"})`;
       }
     });
-    // setInterval(refreshDashboard, 15000); // optional auto-refresh
-    // --- Tiny UI touch: Show detected IP location in footer/header ---
-    (async function showLoc(){
-      const l = await getIPLocationCached();
-      const el = document.querySelector("#locLine");
-      if(l) el.textContent = `You appear to be in ${l.city ?? "?"}, ${l.country ?? "?"} (${l.country_code ?? "?"})`;
-    })();
+   
   </script>
 </body>
 </html>
