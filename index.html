@@ -398,13 +398,20 @@
 
     function startISO(days){
       const d = new Date();
-      d.setUTCHours(0,0,0,0);
-      d.setUTCDate(d.getUTCDate() - (days-1));
+      // use LOCAL midnight instead of UTC midnight
+      d.setHours(0, 0, 0, 0);
+      d.setDate(d.getDate() - (days - 1));
       return d.toISOString();
     }
     function niceTime(ts){ return new Date(ts).toLocaleString(); }
     function shortUser(id){ return id ? id.slice(0,8) : "unknown"; }
-
+    function localDateKey(dateOrString){
+      const d = new Date(dateOrString);
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, "0");
+      const day = String(d.getDate()).padStart(2, "0");
+      return `${y}-${m}-${day}`;
+    }
     async function fetchClicksWindow(days){
       const since = startISO(days);
       const { data, error } = await sb.from("clicks")
@@ -419,16 +426,25 @@
 
     function aggregateDaily(rows, days){
       const map = new Map();
-      const today = new Date(); today.setHours(0,0,0,0);
-      for(let i=days-1;i>=0;i--){
-        const d = new Date(today); d.setDate(today.getDate()-i);
-        const key = d.toISOString().slice(0,10);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      // build keys for each local day in range
+      for (let i = days - 1; i >= 0; i--) {
+        const d = new Date(today);
+        d.setDate(today.getDate() - i);
+        const key = localDateKey(d);
         map.set(key, 0);
       }
-      for(const r of rows){
-        const key = new Date(r.clicked_at).toISOString().slice(0,10);
-        if(map.has(key)) map.set(key, map.get(key)+1);
+
+      // count rows into local-date buckets
+      for (const r of rows) {
+        const key = localDateKey(r.clicked_at);
+        if (map.has(key)) {
+          map.set(key, map.get(key) + 1);
+        }
       }
+
       return { labels: Array.from(map.keys()), values: Array.from(map.values()) };
     }
 
@@ -487,22 +503,22 @@
       // only country tab events
       const countryRows = rows.filter(r => r.action === "landscape_select" && r.country_ui);
 
-      // build date buckets (keys = 'YYYY-MM-DD') for range
+      // build date buckets (keys = local 'YYYY-MM-DD') for range
       const dateKeys = [];
       const today = new Date();
-      today.setHours(0,0,0,0);
-      for(let i = days-1; i >= 0; i--){
+      today.setHours(0, 0, 0, 0);
+      for (let i = days - 1; i >= 0; i--) {
         const d = new Date(today);
         d.setDate(today.getDate() - i);
-        const key = d.toISOString().slice(0,10);
+        const key = localDateKey(d);
         dateKeys.push(key);
       }
 
       // map: country -> { dateKey -> count }
       const perCountry = {}; // { countryKey: { dateKey: count } }
-      for(const r of countryRows){
+      for (const r of countryRows) {
         const cKey = r.country_ui;
-        const dayKey = new Date(r.clicked_at).toISOString().slice(0,10);
+        const dayKey = localDateKey(r.clicked_at);
         if (!perCountry[cKey]) perCountry[cKey] = {};
         perCountry[cKey][dayKey] = (perCountry[cKey][dayKey] || 0) + 1;
       }
