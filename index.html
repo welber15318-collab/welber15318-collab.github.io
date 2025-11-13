@@ -39,6 +39,13 @@
       background: linear-gradient(135deg, #c6f6d5, #68d391);
     }
 
+    body.page-snakeStats-mode {
+      background: linear-gradient(135deg, #fef9c3, #fde68a); /* soft yellow/orange */
+    }
+
+    body.page-snakeStats-mode .main-tabs-bar {
+      background: linear-gradient(135deg, #fef9c3, #fde68a);
+    }
 
     /* Default (dashboard) background */
     body.page-main-mode {
@@ -154,6 +161,9 @@
       </button>
       <button class="tabbtn mainTabBtn" aria-pressed="false" onclick="switchPageTab('snake', this)">
         Snake
+      </button>
+      <button class="tabbtn mainTabBtn" aria-pressed="false" onclick="switchPageTab('snakeStats', this)">
+        Snake stats
       </button>
     </div>
 
@@ -275,24 +285,79 @@
                   aria-label="Country tabs clicks per day"></canvas>
         </section>
       </div>
-      <div id="page-snake" style="display:none;">
-        <section class="card">
-          <h2 style="margin-top:0;">🐍 Snake Game</h2>
-          <p class="muted">Use arrow keys or WASD to move. Eat the food, don’t hit the walls or yourself.</p>
+          <div id="page-snake" style="display:none;">
+            <section class="card">
+              <h2 style="margin-top:0;">🐍 Snake Game</h2>
+              <p class="muted">Use arrow keys or WASD to move. Eat the food, don’t hit the walls or yourself.</p>
 
-          <div class="row" style="align-items:flex-start; gap:16px;">
-            <canvas id="snakeCanvas" width="320" height="320"
-                    style="background:#020617;border-radius:8px;box-shadow:0 6px 18px rgba(0,0,0,0.3);">
-            </canvas>
+              <div class="row" style="align-items:flex-start; gap:16px;">
+                <canvas id="snakeCanvas" width="320" height="320"
+                        style="background:#020617;border-radius:8px;box-shadow:0 6px 18px rgba(0,0,0,0.3);">
+                </canvas>
 
-            <div>
-              <p id="snakeStatus" class="muted">Press <strong>Start</strong> to play.</p>
-              <p>Score: <strong id="snakeScore">0</strong></p>
-              <button onclick="snakeStart()">Start / Restart</button>
-            </div>
+                <div>
+                  <p id="snakeStatus" class="muted">Press <strong>Start</strong> to play.</p>
+                  <p>Score: <strong id="snakeScore">0</strong></p>
+                  <button onclick="snakeStart()">Start / Restart</button>
+                </div>
+              </div>
+            </section>
           </div>
-        </section>
-      </div>
+          <div id="page-snakeStats" style="display:none;">
+      <section class="card">
+        <h2 style="margin-top:0;">🐍 Snake stats</h2>
+        <p class="muted">Based on games stored in <code>snake_games</code> (per browser user).</p>
+      </section>
+
+      <section class="grid">
+        <div class="card">
+          <h3 style="margin-top:0;">1. Top 10 users by best score</h3>
+          <table aria-label="Top snake scores" class="stats-table">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>User</th>
+                <th>Best score</th>
+              </tr>
+            </thead>
+            <tbody id="snakeTopScoresBody">
+              <tr><td colspan="3" class="muted">Loading…</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="card">
+          <h3 style="margin-top:0;">2. Top 10 users by total play time</h3>
+          <table aria-label="Top snake play time" class="stats-table">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>User</th>
+                <th>Total time</th>
+              </tr>
+            </thead>
+            <tbody id="snakeTopTimeBody">
+              <tr><td colspan="3" class="muted">Loading…</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="card">
+        <h3 style="margin-top:0;">3. Total play time per day</h3>
+        <table aria-label="Snake play time per day" class="stats-table">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Total play time</th>
+            </tr>
+          </thead>
+          <tbody id="snakeDailyTimeBody">
+            <tr><td colspan="2" class="muted">Loading…</td></tr>
+          </tbody>
+        </table>
+      </section>
+    </div>
   </main>
   <footer>Built with Supabase + Chart.js</footer>
 
@@ -310,17 +375,24 @@
       document.querySelectorAll(".mainTabBtn").forEach(b => b.setAttribute("aria-pressed","false"));
       if (btn) btn.setAttribute("aria-pressed","true");
 
-      const mainPage   = document.getElementById("page-main");
-      const statsPage  = document.getElementById("page-countryStats");
-      const snakePage  = document.getElementById("page-snake");
+      const mainPage       = document.getElementById("page-main");
+      const statsPage      = document.getElementById("page-countryStats");
+      const snakePage      = document.getElementById("page-snake");
+      const snakeStatsPage = document.getElementById("page-snakeStats");
 
       // hide all pages
-      mainPage.style.display  = "none";
-      statsPage.style.display = "none";
-      snakePage.style.display = "none";
+      mainPage.style.display       = "none";
+      statsPage.style.display      = "none";
+      snakePage.style.display      = "none";
+      snakeStatsPage.style.display = "none";
 
-      // reset background modes
-      document.body.classList.remove("page-main-mode", "page-country-mode", "page-snake-mode");
+      // 🔹 reset background mode classes
+      document.body.classList.remove(
+        "page-main-mode",
+        "page-country-mode",
+        "page-snake-mode",
+        "page-snakeStats-mode"
+      );
 
       if (which === "main") {
         mainPage.style.display = "block";
@@ -335,8 +407,15 @@
         snakePage.style.display = "block";
         document.body.classList.add("page-snake-mode");
         snakeInitIfNeeded();
+
+      } else if (which === "snakeStats") {
+        snakeStatsPage.style.display = "block";
+        // if you want a special color for this page, add CSS for .page-snakeStats-mode
+        document.body.classList.add("page-snakeStats-mode");
+        refreshSnakeStats();
       }
     }
+
 
     // ===== Supabase configuration (replace with your real values) =====
     const SUPABASE_URL = "https://yfjfiedoxmyrlckyqzso.supabase.co";
@@ -1082,7 +1161,133 @@
       if (error) console.error("Insert error (snake_games):", error);
     }
 
+    // ===== Snake stats (from snake_games table) =====
+    // Fetch all snake games for this site (cap at 10k rows for safety)
+    async function fetchSnakeGames(){
+      const { data, error } = await sb.from("snake_games")
+        .select("user_id, score, duration_seconds, started_at")
+        .eq("site_id", SITE_ID)
+        .order("started_at", { ascending: true })
+        .limit(10000);
+      if (error) {
+        console.error("snake_games fetch error:", error);
+        return [];
+      }
+      return data || [];
+    }
 
+    // helper: turn seconds into "X min" with 1 decimal
+    function fmtMinutes(sec){
+      const s = typeof sec === "number" ? sec : 0;
+      return (s / 60).toFixed(1) + " min";
+    }
+
+    // 1) Top 10 users by best score
+    function computeTopScores(games){
+      const best = {}; // user_id -> best score
+      for (const g of games){
+        const u = g.user_id || "unknown";
+        if (!best[u] || g.score > best[u]) {
+          best[u] = g.score;
+        }
+      }
+      return Object.entries(best)
+        .map(([user, score]) => ({ user, score }))
+        .sort((a, b) => b.score - a.score)
+        .slice(0, 10);
+    }
+
+    function renderTopScores(rows){
+      const tbody = document.getElementById("snakeTopScoresBody");
+      if (!tbody) return;
+
+      if (!rows.length){
+        tbody.innerHTML = `<tr><td colspan="3" class="muted">No games yet.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = rows.map((r, idx) => `
+        <tr>
+          <td>${idx + 1}</td>
+          <td>${shortUser(r.user)} (${r.user})</td>
+          <td>${r.score}</td>
+        </tr>
+      `).join("");
+    }
+
+    // 2) Top 10 users by total play time (sum duration_seconds)
+    function computeTopTime(games){
+      const totals = {}; // user_id -> total seconds
+      for (const g of games){
+        const u = g.user_id || "unknown";
+        const sec = typeof g.duration_seconds === "number" ? g.duration_seconds : 0;
+        totals[u] = (totals[u] || 0) + sec;
+      }
+      return Object.entries(totals)
+        .map(([user, seconds]) => ({ user, seconds }))
+        .sort((a, b) => b.seconds - a.seconds)
+        .slice(0, 10);
+    }
+
+    function renderTopTime(rows){
+      const tbody = document.getElementById("snakeTopTimeBody");
+      if (!tbody) return;
+
+      if (!rows.length){
+        tbody.innerHTML = `<tr><td colspan="3" class="muted">No games yet.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = rows.map((r, idx) => `
+        <tr>
+          <td>${idx + 1}</td>
+          <td>${shortUser(r.user)} (${r.user})</td>
+          <td>${fmtMinutes(r.seconds)}</td>
+        </tr>
+      `).join("");
+    }
+
+    // 3) Total play time per day (across all users)
+    function computeDailyTime(games){
+      const perDay = {}; // dateKey (local YYYY-MM-DD) -> seconds
+      for (const g of games){
+        const key = localDateKey(g.started_at);
+        const sec = typeof g.duration_seconds === "number" ? g.duration_seconds : 0;
+        perDay[key] = (perDay[key] || 0) + sec;
+      }
+      return Object.entries(perDay)
+        .map(([date, seconds]) => ({ date, seconds }))
+        .sort((a, b) => b.date.localeCompare(a.date)); // newest first
+    }
+
+    function renderDailyTime(rows){
+      const tbody = document.getElementById("snakeDailyTimeBody");
+      if (!tbody) return;
+
+      if (!rows.length){
+        tbody.innerHTML = `<tr><td colspan="2" class="muted">No games yet.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = rows.map(r => `
+        <tr>
+          <td>${r.date}</td>
+          <td>${fmtMinutes(r.seconds)}</td>
+        </tr>
+      `).join("");
+    }
+
+    // Main refresh function for snake stats tab
+    async function refreshSnakeStats(){
+      const games = await fetchSnakeGames();
+      const topScores = computeTopScores(games);
+      const topTime   = computeTopTime(games);
+      const dailyTime = computeDailyTime(games);
+
+      renderTopScores(topScores);
+      renderTopTime(topTime);
+      renderDailyTime(dailyTime);
+    }
     // ===== Initialize =====
     document.body.classList.add("page-main-mode");  // default background
     // initialize Landscapes tab (default: Japan)
@@ -1090,6 +1295,7 @@
     // initialize Landscapes tab (default: Japan)
     selectCountry('japan', document.getElementById('tab-jp'));
     updateStatsUI();
+    refreshSnakeStats();
     refreshDashboard();
     getIPLocationCached().then(l => {
       const el = document.querySelector("#locLine");
