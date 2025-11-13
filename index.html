@@ -11,6 +11,49 @@
   />
   <title>Find Where You Are</title>
   <style>
+    /* Main page tabs bar stays at the top */
+    .main-tabs-bar {
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+      padding: 8px 16px 10px;
+    }
+
+    /* Dashboard mode: blue gradient */
+    body.page-main-mode .main-tabs-bar {
+      background: linear-gradient(135deg, #89f7fe, #66a6ff);
+    }
+
+    /* Country stats mode: softer gray/white gradient */
+    body.page-country-mode .main-tabs-bar {
+      background: linear-gradient(135deg, #fdfbfb, #ebedee);
+      border-bottom: 1px solid rgba(148, 163, 184, 0.6);
+    }
+
+    /* Default (dashboard) background */
+    body.page-main-mode {
+      background: linear-gradient(135deg, #89f7fe, #66a6ff);
+    }
+
+    /* Country stats mode: a slightly different vibe */
+    body.page-country-mode {
+      background: linear-gradient(135deg, #fdfbfb, #ebedee);
+    }
+
+    /* Optional: cards a bit brighter on stats page */
+    body.page-country-mode .card {
+      background: rgba(255,255,255,0.95);
+    }
+
+    /* Make the active tab stand out */
+    .mainTabBtn[aria-pressed="true"] {
+      background: #005fcc;
+      box-shadow: 0 0 0 3px rgba(0,0,0,0.12);
+    }
+
+    .mainTabBtn[aria-pressed="false"] {
+      opacity: 0.85;
+    }
     body {
       font-family: Arial, sans-serif;
       background: linear-gradient(135deg, #89f7fe, #66a6ff);
@@ -92,7 +135,7 @@
 <body>
 
   <header>
-    <div class="toolbar" style="justify-content:center; margin-top:8px;">
+    <div class="toolbar main-tabs-bar" style="justify-content:center; margin-top:16px;">
       <button class="tabbtn mainTabBtn" aria-pressed="true" onclick="switchPageTab('main', this)">
         Dashboard
       </button>
@@ -237,16 +280,23 @@
       if (btn) btn.setAttribute("aria-pressed","true");
 
       // show/hide page containers
-      const mainPage = document.getElementById("page-main");
+      const mainPage  = document.getElementById("page-main");
       const statsPage = document.getElementById("page-countryStats");
 
       if (which === "main") {
         mainPage.style.display = "block";
         statsPage.style.display = "none";
+
+        document.body.classList.add("page-main-mode");
+        document.body.classList.remove("page-country-mode");
       } else if (which === "countryStats") {
         mainPage.style.display = "none";
         statsPage.style.display = "block";
-        refreshCountryStats(); // load data when switching to stats page
+
+        document.body.classList.add("page-country-mode");
+        document.body.classList.remove("page-main-mode");
+
+        refreshCountryStats(); // your existing behavior
       }
     }
     // ===== Supabase configuration (replace with your real values) =====
@@ -796,6 +846,9 @@
     }
   
     // ===== Initialize =====
+    document.body.classList.add("page-main-mode");  // default background
+    // initialize Landscapes tab (default: Japan)
+    selectCountry('japan', document.getElementById('tab-jp'));
     // initialize Landscapes tab (default: Japan)
     selectCountry('japan', document.getElementById('tab-jp'));
     updateStatsUI();
