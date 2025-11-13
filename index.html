@@ -314,21 +314,30 @@
       const statsPage  = document.getElementById("page-countryStats");
       const snakePage  = document.getElementById("page-snake");
 
-      // hide all pages first
+      // hide all pages
       mainPage.style.display  = "none";
       statsPage.style.display = "none";
       snakePage.style.display = "none";
 
+      // reset background modes
+      document.body.classList.remove("page-main-mode", "page-country-mode", "page-snake-mode");
+
       if (which === "main") {
         mainPage.style.display = "block";
+        document.body.classList.add("page-main-mode");
+
       } else if (which === "countryStats") {
         statsPage.style.display = "block";
+        document.body.classList.add("page-country-mode");
         refreshCountryStats();
+
       } else if (which === "snake") {
         snakePage.style.display = "block";
+        document.body.classList.add("page-snake-mode");
         snakeInitIfNeeded();
       }
     }
+
     // ===== Supabase configuration (replace with your real values) =====
     const SUPABASE_URL = "https://yfjfiedoxmyrlckyqzso.supabase.co";
     const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlmamZpZWRveG15cmxja3lxenNvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI3OTQzNjMsImV4cCI6MjA3ODM3MDM2M30.31MQm5y7XEnnM1uKoezUkNj3mxlAuIXbOsW9aLPTCfM";
